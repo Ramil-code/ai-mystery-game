@@ -75,7 +75,7 @@ def modify_html_file(service_name, increment_solved_count=False):
     obj = s3.get_object(Bucket=CONFIG['bucket_name'], Key=CONFIG['html_file_key'])
     html_content = obj['Body'].read().decode('utf-8')
 
-    # Обновляем correctAnswer
+    #  correctAnswer
     html_content = re.sub(
         r'const correctAnswer = "(.*?)";',
         f'const correctAnswer = "{service_name}";',
