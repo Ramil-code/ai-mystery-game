@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Let’s Solve 100 AWS Mysteries Together!</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            background-color: #000;
+            margin: 0;
+            padding: 0 0 100px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            min-height: 100vh;
+            color: white;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #f5f5dc;
+            text-transform: uppercase;
+        }
+
+        .scoreboard {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            color: #ff9900;
+            text-align: center;
+        }
+
+        .slider {
+            width: 76vh;
+            max-width: 800px;
+            position: relative;
+            overflow: hidden;
+            margin-top: 5px;
+            height: 76vh;
+        }
+
+        .slides {
+            display: flex;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .slides img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .navigation {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            display: none;
+            justify-content: space-between;
+            transform: translateY(-50%);
+        }
+
+        .navigation button {
+            background-color: rgba(255, 255, 255, 0.5);
+            border: none;
+            color: black;
+            cursor: pointer;
+            font-size: 24px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        .navigation button:hover {
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .navigation button::before {
+            content: '';
+            display: block;
+            width: 15px;
+            height: 15px;
+            border-top: 2px solid black;
+            border-right: 2px solid black;
+        }
+
+        #prev::before {
+            transform: rotate(-135deg);
+        }
+
+        #next::before {
+            transform: rotate(45deg);
+        }
+
+        .input-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 95vw;
+            visibility: visible;
+        }
+
+        .letter-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+
+        .letter-box {
+            width: 35px;
+            height: 35px;
+            border: 2px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 2px;
+            font-size: 1rem;
+            background-color: black;
+            color: white;
+            position: relative;
+        }
+
+        .letter-input {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: center;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .correct {
+            border-color: #39FF14;
+            color: #39FF14;
+        }
+
+        .result {
+            margin-top: 5px;
+            font-size: 1rem;
+            color: limegreen;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .generate-btn, .refresh-btn, .next-btn {
+            padding: 10px 20px;
+            background-color: #ff9900;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 10px;
+            font-size: 1rem;
+            margin: 5px;
+            width: 140px;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .refresh-btn {
+            background-color: #ff007f;
+        }
+
+        .next-btn {
+            background-color: gray;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .next-btn.active {
+            background-color: green;
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .generate-btn:hover {
+            background-color: #e68a00;
+        }
+
+        .next-message {
+            margin-top: 5px;
+            font-size: 1.2rem;
+            color: lightgreen;
+            display: none;
+        }
+
+        .timer {
+            font-size: 1.5rem;
+            color: yellow;
+        }
+
+        .generate-btn:active, .refresh-btn:active, .next-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .slider {
+                width: 100%;
+                height: auto;
+            }
+
+            .letter-box {
+                width: 24px;
+                height: 24px;
+                font-size: 0.7rem;
+            }
+
+            .letter-input {
+                font-size: 0.75rem;
+            }
+
+            .generate-btn:hover, .refresh-btn:hover, .next-btn:hover {
+                background-color: #e68a00;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+            }
+
+            h1 {
+                font-size: 1.2rem;
+            }
+
+            .scoreboard {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1>Let’s Solve 100 AWS Mysteries Together!</h1>
+<div class="scoreboard">
+    Mysteries: 0 / Solved: 0 / Our Goal: 100
+</div>
+
+<div class="slider">
+    <div class="slides" id="slides">
+        <!-- Images will be rendered here dynamically -->
+    </div>
+    <div class="navigation" id="navigation">
+        <button id="prev"></button>
+        <button id="next"></button>
+    </div>
+    <div class="input-container" id="input-container">
+        <div class="letter-container" id="letter-container">
+        </div>
+        <div class="result" id="result"></div>
+        <div class="next-message" id="next-message">Well Done! One more?</div>
+    </div>
+</div>
+
+<div class="button-container">
+    <button class="generate-btn" id="generate" disabled>One more Image</button>
+    <button class="refresh-btn" id="refresh" disabled>
+        <span id="timer">Refresh</span>
+    </button>
+    <button class="next-btn" id="next-question" disabled>Next Mystery</button>
+</div>
+
+<script>
+    const slides = document.getElementById('slides');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const generateBtn = document.getElementById('generate');
+    const refreshBtn = document.getElementById('refresh');
+    const nextQuestionBtn = document.getElementById('next-question');
+    const resultDiv = document.getElementById('result');
+    const nextMessageDiv = document.getElementById('next-message');
+    const letterContainer = document.getElementById('letter-container');
+    const inputContainer = document.getElementById('input-container');
+    const timerDiv = document.getElementById('timer');
+    const scoreboardDiv = document.querySelector('.scoreboard');
+    const navigationDiv = document.getElementById('navigation');
+
+    let questionsCount = 0;
+    let solvedCount = 0;
+    const correctAnswer = "Athena";
+    const letterBoxes = [];
+    let currentSlide = 0;
+    let images = [];
+    let isPuzzleSolved = false;
+
+    function createLetterBoxes() {
+        letterContainer.innerHTML = "";
+        letterBoxes.length = 0;
+        inputContainer.style.visibility = 'visible';
+
+        const maxLettersPerRow = 10;
+        const totalRows = Math.ceil(correctAnswer.length / maxLettersPerRow);
+
+        const firstLetterIndex = 0;
+        const randomLetterIndex = Math.floor(Math.random() * (correctAnswer.length - 1)) + 1;
+
+        for (let row = 0; row < totalRows; row++) {
+            const rowContainer = document.createElement('div');
+            rowContainer.style.display = 'flex';
+            rowContainer.justifyContent = 'center';
+            const startIdx = row * maxLettersPerRow;
+            const endIdx = Math.min(startIdx + maxLettersPerRow, correctAnswer.length);
+
+            for (let i = startIdx; i < endIdx; i++) {
+                const box = document.createElement('div');
+                box.className = 'letter-box';
+                const input = document.createElement('input');
+                input.className = 'letter-input';
+                input.maxLength = 1;
+                input.dataset.index = i;
+                input.addEventListener('input', handleLetterInput);
+
+                if (i === firstLetterIndex || i === randomLetterIndex) {
+                    input.value = correctAnswer[i];
+                    input.classList.add('correct');
+                    input.disabled = true;
+                }
+
+                box.appendChild(input);
+                rowContainer.appendChild(box);
+                letterBoxes.push(input);
+            }
+
+            letterContainer.appendChild(rowContainer);
+        }
+
+        questionsCount++;
+        updateScoreboard();
+    }
+
+    function updateScoreboard() {
+        scoreboardDiv.textContent = `Mysteries: ${questionsCount} / Solved: ${solvedCount} / Our goal: 100`;
+    }
+
+    function showSlide(index) {
+        if (images.length > 0) {
+            slides.style.transform = `translateX(-${index * 100}%)`;
+        }
+    }
+
+    function renderPlaceholder() {
+        slides.innerHTML = '<img src="REPLACE-BY-S3-PLACEHOLDER-IMAGE-HTTP" alt="Placeholder Image">';
+        slides.style.transform = 'translateX(0)';
+    }
+
+    async function fetchImages() {
+        const apiUrl = "https://REPLACE-BY-API-LINK/Prod/list-images";
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            images = await response.json();
+            if (images.length > 0) {
+                renderImages(images);
+                showSlide(0);
+            } else {
+                renderPlaceholder();
+            }
+        } catch (error) {
+            console.error('Image load error:', error);
+            renderPlaceholder();
+        }
+        adjustButtonStates();
+    }
+
+    function renderImages(imageUrls) {
+        slides.innerHTML = "";
+        if (imageUrls.length === 0) {
+            renderPlaceholder();
+        } else {
+            imageUrls.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url + '?timestamp=' + new Date().getTime();
+                img.alt = "Slide Image";
+                img.onerror = function () {
+                    console.error('Image load error:', url);
+                    this.style.display = 'none';
+                };
+                slides.appendChild(img);
+            });
+        }
+    }
+
+    function adjustButtonStates() {
+        const totalImages = images.length;
+        if (totalImages <= 1) {
+            navigationDiv.style.display = 'none';
+        } else {
+            navigationDiv.style.display = 'flex';
+        }
+
+        if (isPuzzleSolved) {
+            nextQuestionBtn.disabled = false;
+            nextQuestionBtn.classList.add('active');
+            generateBtn.disabled = true;
+            refreshBtn.disabled = true;
+            return;
+        }
+
+        prevBtn.disabled = false;
+        nextBtn.disabled = false;
+
+        if (images.length === 3) {
+            nextQuestionBtn.disabled = false;
+            nextQuestionBtn.classList.add('active');
+            refreshBtn.disabled = false;
+            generateBtn.disabled = true;
+            generateBtn.classList.add('disabled');
+            refreshBtn.classList.remove('disabled');
+        } else {
+            nextQuestionBtn.disabled = true;
+            nextQuestionBtn.classList.remove('active');
+            refreshBtn.disabled = false;
+            generateBtn.disabled = false;
+            generateBtn.classList.remove('disabled');
+        }
+    }
+
+    function updateSlides(direction) {
+        const totalImages = images.length;
+        if (totalImages > 0) {
+            currentSlide = (currentSlide + direction + totalImages) % totalImages;
+            showSlide(currentSlide);
+            adjustButtonStates();
+        }
+    }
+
+    prevBtn.addEventListener('click', () => {
+        updateSlides(-1);
+    });
+
+    nextBtn.addEventListener('click', () => {
+        updateSlides(1);
+    });
+
+    function handleLetterInput(e) {
+        const index = parseInt(e.target.dataset.index, 10);
+        const inputChar = e.target.value.toLowerCase();
+
+        if (inputChar === correctAnswer[index].toLowerCase()) {
+            e.target.classList.add('correct');
+            const nextInput = letterBoxes[index + 1];
+            if (nextInput) {
+                nextInput.focus();
+            }
+        } else {
+            e.target.classList.remove('correct');
+        }
+
+        const userInput = letterBoxes.map(box => box.value).join('').toLowerCase();
+        if (userInput === correctAnswer.toLowerCase()) {
+            resultDiv.innerText = "You are AWSome!";
+            nextMessageDiv.style.display = "block";
+            solvedCount++;
+            updateScoreboard();
+            isPuzzleSolved = true;
+            adjustButtonStates();
+        } else {
+            resultDiv.innerText = "";
+            nextMessageDiv.style.display = "none";
+            isPuzzleSolved = false;
+            adjustButtonStates();
+        }
+    }
+
+    async function sendDataToAPI() {
+        const apiUrl = "https://REPLACE-BY-API-LINK/Prod/process";
+
+        const requestData = {
+            "situation_id": 1
+        };
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData),
+            });
+
+            if (response.ok) {
+                const jsonResponse = await response.json();
+                console.log('Successfully sent:', jsonResponse);
+                resultDiv.innerText = 'Sent!';
+            } else {
+                console.error('Error:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Sending error:', error);
+        }
+    }
+
+    async function handleGenerateImage() {
+        sendDataToAPI();
+        startTimer(20);
+    }
+
+    async function sendNextQuestionDataToAPI() {
+        const apiUrl = "https://REPLACE-BY-API-LINK/Prod/get-description";
+
+        const requestData = {
+            "mic": isPuzzleSolved ? 3 : 2
+        };
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData),
+            });
+
+            if (response.ok) {
+                const jsonResponse = await response.json();
+                console.log('Successfully sent:', jsonResponse);
+            } else {
+                console.error('Error for the next question:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Next question error:', error);
+        }
+    }
+
+    function startTimer(duration) {
+        let timer = duration, seconds;
+        const interval = setInterval(() => {
+            seconds = parseInt(timer % 60, 10);
+            seconds = seconds < 10 ? "0" + seconds : seconds;
+            timerDiv.textContent = seconds;
+
+            if (--timer < 0) {
+                clearInterval(interval);
+                location.reload();  
+            }
+        }, 1000);
+    }
+
+    function startRefreshTimer(duration) {
+        let timer = duration, seconds;
+        refreshBtn.disabled = true;
+        const interval = setInterval(() => {
+            seconds = parseInt(timer % 60, 10);
+            seconds = seconds < 10 ? "0" + seconds : seconds;
+            timerDiv.textContent = seconds;
+
+            if (--timer < 0) {
+                clearInterval(interval);
+                location.reload();  
+            }
+        }, 1000);
+    }
+
+    generateBtn.addEventListener('click', handleGenerateImage);
+
+    refreshBtn.addEventListener('click', () => {
+        location.reload();
+    });
+
+    nextQuestionBtn.addEventListener('click', () => {
+        nextMessageDiv.style.display = "none";
+        resultDiv.innerText = "";
+
+        renderPlaceholder();
+        navigationDiv.style.display = 'none';
+
+        sendNextQuestionDataToAPI();
+        
+        letterBoxes.forEach(input => {
+            input.value = '';
+            input.classList.remove('correct');
+        });
+        
+        inputContainer.style.visibility = 'hidden';
+
+        isPuzzleSolved = false;
+
+        startRefreshTimer(31);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchImages();
+        createLetterBoxes();
+    });
+</script>
+
+</body>
+</html>
